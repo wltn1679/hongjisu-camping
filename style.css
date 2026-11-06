@@ -116,6 +116,25 @@ button.danger { background: #b24a3a; }
 
 footer { text-align: center; color: #888; font-size: 13px; padding: 24px; }
 
+/* ===== 예약/관리자 ===== */
+.demo-banner { background: #fff4d6; border: 1px solid #e9c46a; color: #7a5a00; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
+.done-box { background: #e8f5e4; border: 2px solid #2f7d3a; border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
+.code-big { font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #2f5d3a; margin: 6px 0; font-family: Consolas, monospace; }
+.res-code { font-family: Consolas, monospace; font-weight: bold; letter-spacing: 2px; color: #2f5d3a; }
+.status { display: inline-block; border-radius: 10px; padding: 1px 10px; font-size: 12px; font-weight: bold; }
+.status.confirmed { background: #dff1dc; color: #2f7d3a; }
+.status.cancelled { background: #eee; color: #888; }
+.res-item.is-cancelled { opacity: .6; }
+.lookup { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.lookup .f { flex: 1; min-width: 160px; }
+.lookup label { display: block; font-size: 13px; color: #666; margin-bottom: 3px; }
+.lookup input { width: 100%; }
+.admin-table { width: 100%; border-collapse: collapse; background: #fff; font-size: 14px; }
+.admin-table th, .admin-table td { border-bottom: 1px solid #e6e2d8; padding: 8px 10px; text-align: left; vertical-align: top; }
+.admin-table th { background: #eef3ea; color: #2f5d3a; position: sticky; top: 0; }
+.admin-table th, .admin-table td { white-space: nowrap; }
+.table-wrap { overflow-x: auto; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
 /* ===== 헤더: 로고 옆 위치보기 링크 ===== */
 .brand { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .brand a { margin-left: 0; }

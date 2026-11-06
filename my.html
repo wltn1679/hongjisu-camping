@@ -20,6 +20,20 @@
 
   <main>
     <h2>내 예약</h2>
+    <div id="done"></div>
+
+    <!-- 서버 모드: 예약번호 + 전화번호로 조회 -->
+    <div class="box" id="lookupBox" style="display:none">
+      <h3 style="margin-bottom:8px">예약번호로 조회하기</h3>
+      <p style="font-size:14px;color:#666;margin-bottom:10px">다른 기기에서 예약했거나 목록에 없을 때 예약번호와 전화번호를 입력하세요.</p>
+      <div class="lookup">
+        <div class="f"><label>예약번호 (8자리)</label><input type="text" id="lkCode" maxlength="8" placeholder="예: K7M3Q9XA" style="text-transform:uppercase"></div>
+        <div class="f"><label>예약 시 입력한 전화번호</label><input type="tel" id="lkPhone" placeholder="010-1234-5678"></div>
+        <button id="lkBtn">조회</button>
+      </div>
+      <div class="error" id="lkErr" style="margin:8px 0 0"></div>
+    </div>
+
     <div id="list"></div>
   </main>
 
@@ -29,42 +43,109 @@
   <script src="app.js"></script>
   <script>
     const listEl = document.getElementById("list");
+    const doneEl = document.getElementById("done");
+    const newCode = new URLSearchParams(location.search).get("new");
 
-    function render() {
+    // 예약 한 건을 카드로 그리기 (사람이 입력한 값은 esc()로 감싸요)
+    function card(r, phoneForCancel) {
+      const site = findSite(r.siteId);
+      const cancelled = r.status === "cancelled";
+      const canCancel = !cancelled && r.checkIn > todayString();
+      return '<div class="box res-item ' + (cancelled ? "is-cancelled" : "") + '">' +
+        '<div>' +
+          '<p><span class="res-code">' + esc(r.code) + '</span> ' +
+          '<span class="status ' + (cancelled ? "cancelled" : "confirmed") + '">' + (cancelled ? "취소됨" : "예약 확정") + '</span></p>' +
+          '<h3>' + site.emoji + ' ' + esc(site.name) + '</h3>' +
+          '<p>' + esc(r.checkIn) + ' ~ ' + esc(r.checkOut) + ' (' + countNights(r.checkIn, r.checkOut) + '박) · ' + esc(r.people) + '명</p>' +
+          '<p>예약자: ' + esc(r.name) + ' (' + esc(r.phone) + ')</p>' +
+          '<p class="price">총 ' + formatPrice(r.total) + '</p>' +
+        '</div>' +
+        (canCancel ? '<button class="danger" data-code="' + esc(r.code) + '" data-id="' + esc(r.id) + '" data-phone="' + esc(phoneForCancel || r.phone) + '">예약 취소</button>' : '') +
+        '</div>';
+    }
+
+    // ----- 서버 모드: 저장해 둔 예약번호들을 서버에서 불러오기 -----
+    async function renderServer() {
+      const saved = getSavedCodes();
+      if (!saved.length) {
+        listEl.innerHTML = '<p class="empty">아직 이 브라우저에 저장된 예약이 없어요.<br>예약번호가 있다면 위에서 조회하세요. <a href="index.html">구역 보러 가기</a></p>';
+        return;
+      }
+      listEl.innerHTML = '<p class="empty">불러오는 중…</p>';
+      const results = await Promise.all(saved.map(function (s) {
+        return api("/api/reservations?code=" + encodeURIComponent(s.code) + "&phone=" + encodeURIComponent(s.phone))
+          .then(function (r) { return { s: s, r: r }; })
+          .catch(function () { return { s: s, r: null }; });
+      }));
+      let html = "";
+      results.forEach(function (x) {
+        if (x.r && x.r.ok) html += card(x.r.json.reservation, x.s.phone);
+        else if (x.r && x.r.status === 404) forgetCode(x.s.code);
+        else html += '<div class="box"><p class="error">' + esc(x.s.code) + ' 예약을 불러오지 못했어요. 잠시 뒤 새로고침 해 주세요.</p></div>';
+      });
+      listEl.innerHTML = html || '<p class="empty">표시할 예약이 없어요. <a href="index.html">구역 보러 가기</a></p>';
+    }
+
+    // ----- 데모 모드: 이 브라우저에 저장된 예약 -----
+    function renderDemo() {
       const reservations = getMyReservations();
-
-      if (reservations.length === 0) {
+      if (!reservations.length) {
         listEl.innerHTML = '<p class="empty">아직 예약이 없어요. <a href="index.html">구역 보러 가기</a></p>';
         return;
       }
-
       let html = "";
-      reservations.forEach(function (r) {
-        const site = findSite(r.siteId);
-        html += '<div class="box res-item">' +
-          '<div>' +
-            '<h3>' + site.emoji + ' ' + site.name + '</h3>' +
-            '<p>' + r.checkIn + ' ~ ' + r.checkOut + ' (' + countNights(r.checkIn, r.checkOut) + '박) · ' + r.people + '명</p>' +
-            '<p>예약자: ' + r.name + ' (' + r.phone + ')</p>' +
-            '<p class="price">총 ' + formatPrice(r.total) + '</p>' +
-          '</div>' +
-          '<button class="danger" data-id="' + r.id + '">예약 취소</button>' +
-        '</div>';
-      });
+      reservations.forEach(function (r) { html += card(Object.assign({ status: "confirmed", code: r.code || "DEMO" }, r)); });
       listEl.innerHTML = html;
     }
 
-    // 취소 버튼 (목록 안의 버튼을 한 번에 처리)
-    listEl.addEventListener("click", function (e) {
-      const id = e.target.getAttribute("data-id");
-      if (!id) return;
+    function render() { return API_MODE ? renderServer() : renderDemo(); }
+
+    // 예약 취소 버튼
+    listEl.addEventListener("click", async function (e) {
+      const btn = e.target.closest("button[data-code]");
+      if (!btn) return;
       if (!confirm("정말 예약을 취소할까요?")) return;
-      const left = getMyReservations().filter(function (r) { return r.id !== Number(id); });
-      saveMyReservations(left);
+      const code = btn.getAttribute("data-code");
+      if (API_MODE) {
+        btn.disabled = true;
+        const r = await api("/api/reservations?code=" + encodeURIComponent(code) + "&phone=" + encodeURIComponent(btn.getAttribute("data-phone")), { method: "DELETE" });
+        if (!r.ok) { alert(r.json.error || "취소하지 못했어요."); btn.disabled = false; return; }
+      } else {
+        const id = btn.getAttribute("data-id");
+        const left = getMyReservations().filter(function (x) { return String(x.id) !== id; });
+        saveMyReservations(left);
+      }
       render();
     });
 
-    render();
+    // 조회 버튼
+    document.getElementById("lkBtn").addEventListener("click", async function () {
+      const err = document.getElementById("lkErr");
+      err.textContent = "";
+      const code = document.getElementById("lkCode").value.trim().toUpperCase();
+      const phone = document.getElementById("lkPhone").value.trim();
+      if (!code || !phone) { err.textContent = "예약번호와 전화번호를 입력해 주세요."; return; }
+      const r = await api("/api/reservations?code=" + encodeURIComponent(code) + "&phone=" + encodeURIComponent(phone));
+      if (!r.ok) { err.textContent = r.json.error || "조회하지 못했어요."; return; }
+      saveCode(code, phone);
+      document.getElementById("lkCode").value = "";
+      render();
+    });
+
+    // 시작
+    (async function () {
+      await initBookings();
+      showDemoBanner();
+      document.getElementById("lookupBox").style.display = API_MODE ? "block" : "none";
+      if (newCode) {
+        doneEl.innerHTML = '<div class="done-box"><h3>🎉 예약이 완료됐어요!</h3>' +
+          '<div class="code-big">' + esc(newCode) + '</div>' +
+          '<p>' + (API_MODE ? '이 <b>예약번호</b>와 예약 때 입력한 <b>전화번호</b>로 언제든 확인·취소할 수 있어요. 캡처하거나 메모해 두세요.'
+                            : '데모 모드라 이 브라우저에만 저장됐어요.') + '</p></div>';
+        try { history.replaceState(null, "", "my.html"); } catch (e) {}
+      }
+      render();
+    })();
   </script>
 </body>
 </html>

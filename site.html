@@ -29,6 +29,7 @@
     const params = new URLSearchParams(location.search);
     const site = findSite(Number(params.get("id")));
     const content = document.getElementById("content");
+    initBookings().then(showDemoBanner); // 서버에서 예약 현황 받기 (서버가 없으면 데모 모드 안내 표시)
 
     if (!site) {
       content.innerHTML = '<p class="empty">없는 구역이에요. <a href="index.html">목록으로</a></p>';
@@ -86,7 +87,7 @@
       updateTotal();
 
       // 예약 버튼
-      document.getElementById("reserveBtn").addEventListener("click", function () {
+      document.getElementById("reserveBtn").addEventListener("click", async function () {
         errEl.textContent = "";
         const checkIn = inEl.value;
         const checkOut = outEl.value;
@@ -104,28 +105,29 @@
         if (!name || !phone) { errEl.textContent = "이름과 연락처를 입력해 주세요."; return; }
         if (!document.getElementById("agree").checked) { errEl.textContent = "존 안내 확인에 체크해 주세요."; return; }
 
-        // 2) ★ 날짜 겹침 검사
+        // 2) ★ 날짜 겹침 검사 (최신 예약 현황을 서버에서 다시 받아서 확인)
+        const btn = document.getElementById("reserveBtn");
+        btn.disabled = true;
+        btn.textContent = "예약하는 중…";
+        await initBookings();
         if (!isAvailable(site.id, checkIn, checkOut)) {
           errEl.textContent = "그 날짜에는 이미 예약이 있어요. 다른 날짜를 선택해 주세요.";
+          btn.disabled = false; btn.textContent = "예약 확정";
           return;
         }
 
-        // 3) 저장
-        const list = getMyReservations();
-        list.push({
-          id: Date.now(),
-          siteId: site.id,
-          checkIn: checkIn,
-          checkOut: checkOut,
-          people: people,
-          name: name,
-          phone: phone,
-          total: nights * site.price
+        // 3) 저장 (서버가 연결돼 있으면 서버 DB에, 아니면 이 브라우저에)
+        // 서버가 한 번 더 중복을 검사하고 금액도 직접 계산해요.
+        const result = await createReservation({
+          siteId: site.id, checkIn: checkIn, checkOut: checkOut,
+          people: people, name: name, phone: phone
         });
-        saveMyReservations(list);
-
-        alert("예약이 완료됐어요! 🎉");
-        location.href = "my.html";
+        if (!result.ok) {
+          errEl.textContent = result.error;
+          btn.disabled = false; btn.textContent = "예약 확정";
+          return;
+        }
+        location.href = "my.html?new=" + encodeURIComponent(result.reservation.code);
       });
     }
   </script>

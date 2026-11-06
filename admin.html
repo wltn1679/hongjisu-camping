@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>관리자 - 홍지수캠핑장</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <a class="logo" href="index.html">🌲 홍지수캠핑장</a>
+      <a class="maplink" href="map.html">📍 사이트 위치보기</a>
+    </div>
+    <nav><a href="index.html">홈으로</a></nav>
+  </header>
+
+  <main>
+    <h2>🔑 관리자 · 예약 관리</h2>
+
+    <div class="box" id="loginBox">
+      <div class="lookup">
+        <div class="f"><label>관리자 비밀번호</label><input type="password" id="pw" autocomplete="current-password"></div>
+        <button id="loginBtn">들어가기</button>
+      </div>
+      <div class="error" id="loginErr" style="margin:8px 0 0"></div>
+    </div>
+
+    <div id="panel" style="display:none">
+      <div class="box" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+        <div id="summary"></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="filter">
+            <option value="confirmed">예약 확정만</option>
+            <option value="all">전체(취소 포함)</option>
+            <option value="cancelled">취소된 예약만</option>
+          </select>
+          <select id="siteFilter"><option value="">모든 구역</option></select>
+          <button id="refreshBtn">새로고침</button>
+          <button id="logoutBtn" class="danger">나가기</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table class="admin-table">
+        <thead><tr><th>예약번호</th><th>구역</th><th>입실</th><th>퇴실</th><th>인원</th><th>예약자</th><th>연락처</th><th>금액</th><th>상태</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+    </div>
+  </main>
+
+  <footer>© 홍지수캠핑장 · 관리자 페이지</footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    let all = [];
+    const KEY = "hjs_admin_pw";
+    const loginBox = document.getElementById("loginBox");
+    const panel = document.getElementById("panel");
+
+    const siteSel = document.getElementById("siteFilter");
+    SITES.forEach(function (s) { siteSel.insertAdjacentHTML("beforeend", '<option value="' + s.id + '">' + esc(s.name) + '</option>'); });
+
+    function pw() { try { return sessionStorage.getItem(KEY) || ""; } catch (e) { return ""; } }
+
+    async function load() {
+      const r = await api("/api/admin", { headers: { "x-admin-password": pw() } });
+      if (r.status === 401) { logout(); document.getElementById("loginErr").textContent = "비밀번호가 틀렸어요."; return; }
+      if (!r.ok) { logout(); document.getElementById("loginErr").textContent = r.json.error || "불러오지 못했어요."; return; }
+      all = r.json.reservations;
+      loginBox.style.display = "none";
+      panel.style.display = "block";
+      draw();
+    }
+
+    function draw() {
+      const f = document.getElementById("filter").value;
+      const sid = siteSel.value;
+      const list = all.filter(function (r) {
+        return (f === "all" || r.status === f) && (!sid || String(r.siteId) === sid);
+      });
+      const confirmed = all.filter(function (r) { return r.status === "confirmed"; });
+      const sum = confirmed.reduce(function (a, r) { return a + r.total; }, 0);
+      document.getElementById("summary").innerHTML = '예약 확정 <b>' + confirmed.length + '</b>건 · 합계 <b>' + formatPrice(sum) + '</b>';
+
+      let html = "";
+      list.forEach(function (r) {
+        const s = findSite(r.siteId);
+        const cancelled = r.status === "cancelled";
+        html += '<tr' + (cancelled ? ' style="opacity:.55"' : '') + '>' +
+          '<td class="res-code">' + esc(r.code) + '</td>' +
+          '<td>' + esc(s ? s.name : r.siteId) + '</td>' +
+          '<td>' + esc(r.checkIn) + '</td><td>' + esc(r.checkOut) + '</td>' +
+          '<td>' + esc(r.people) + '</td>' +
+          '<td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td>' +
+          '<td>' + formatPrice(r.total) + '</td>' +
+          '<td><span class="status ' + esc(r.status) + '">' + (cancelled ? "취소됨" : "확정") + '</span></td>' +
+          '<td>' + (cancelled ? '' : '<button class="danger" data-code="' + esc(r.code) + '">취소</button>') + '</td></tr>';
+      });
+      document.getElementById("rows").innerHTML = html || '<tr><td colspan="10" class="empty">표시할 예약이 없어요.</td></tr>';
+    }
+
+    function logout() {
+      try { sessionStorage.removeItem(KEY); } catch (e) {}
+      panel.style.display = "none";
+      loginBox.style.display = "block";
+    }
+
+    document.getElementById("loginBtn").addEventListener("click", function () {
+      document.getElementById("loginErr").textContent = "";
+      try { sessionStorage.setItem(KEY, document.getElementById("pw").value); } catch (e) {}
+      load();
+    });
+    document.getElementById("pw").addEventListener("keydown", function (e) { if (e.key === "Enter") document.getElementById("loginBtn").click(); });
+    document.getElementById("logoutBtn").addEventListener("click", function () { logout(); document.getElementById("pw").value = ""; });
+    document.getElementById("refreshBtn").addEventListener("click", load);
+    document.getElementById("filter").addEventListener("change", draw);
+    siteSel.addEventListener("change", draw);
+
+    document.getElementById("rows").addEventListener("click", async function (e) {
+      const b = e.target.closest("button[data-code]");
+      if (!b) return;
+      const code = b.getAttribute("data-code");
+      if (!confirm(code + " 예약을 취소할까요?\n(취소하면 그 날짜는 다시 예약 가능해져요)")) return;
+      b.disabled = true;
+      const r = await api("/api/admin?code=" + encodeURIComponent(code), { method: "DELETE", headers: { "x-admin-password": pw() } });
+      if (!r.ok) { alert(r.json.error || "취소하지 못했어요."); b.disabled = false; return; }
+      load();
+    });
+
+    if (pw()) load(); // 같은 탭에서 이미 로그인했다면 바로 열기
+  </script>
+</body>
+</html>

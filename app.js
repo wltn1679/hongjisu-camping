@@ -15,8 +15,92 @@ function saveMyReservations(list) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 }
 
-// 가짜 예약 + 내 예약을 합친 전체 예약
+// ===== 서버 연결 =====
+// 서버(/api)가 연결돼 있으면 예약이 서버 DB에 저장돼요 (API_MODE).
+// 서버가 없거나 아직 준비 안 됐으면 예전처럼 이 브라우저에만 저장하는 "데모 모드"로 자동 전환돼요.
+let API_MODE = false;
+let BOOKED = []; // 서버에서 받은 "예약이 찬 날짜" (개인정보 없음)
+const CODES_KEY = "hjs_camp_codes";
+
+async function api(path, options) {
+  const res = await fetch(path, Object.assign({ cache: "no-store" }, options || {}));
+  let json = {};
+  try { json = await res.json(); } catch (e) {}
+  return { status: res.status, ok: res.ok, json: json };
+}
+
+async function initBookings() {
+  try {
+    const r = await api("/api/availability");
+    if (r.ok && Array.isArray(r.json.bookings)) { BOOKED = r.json.bookings; API_MODE = true; return; }
+  } catch (e) {}
+  API_MODE = false;
+}
+
+// 이름·메모처럼 사람이 입력한 글을 화면에 넣을 때는 꼭 이걸로 감싸요 (악성 코드 방지)
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+
+// 데모 모드일 때 위에 띄우는 안내
+function showDemoBanner() {
+  const m = document.querySelector("main");
+  if (API_MODE || !m || document.getElementById("demoBanner")) return;
+  const d = document.createElement("div");
+  d.id = "demoBanner";
+  d.className = "demo-banner";
+  d.innerHTML = "⚠️ <b>데모 모드</b> · 서버가 연결되지 않아 예약이 <b>이 브라우저에만</b> 저장돼요.";
+  m.prepend(d);
+}
+
+// 내 브라우저에 기억해 둔 예약번호들 (서버 모드에서 "내 예약" 목록을 보여주기 위함)
+function getSavedCodes() {
+  try { return JSON.parse(localStorage.getItem(CODES_KEY)) || []; } catch (e) { return []; }
+}
+function saveCode(code, phone) {
+  const list = getSavedCodes().filter(function (x) { return x.code !== code; });
+  list.push({ code: code, phone: String(phone).replace(/\D/g, "") });
+  try { localStorage.setItem(CODES_KEY, JSON.stringify(list)); } catch (e) {}
+}
+function forgetCode(code) {
+  const list = getSavedCodes().filter(function (x) { return x.code !== code; });
+  try { localStorage.setItem(CODES_KEY, JSON.stringify(list)); } catch (e) {}
+}
+
+// 예약 만들기. 성공하면 { ok:true, reservation }, 실패하면 { ok:false, error }
+async function createReservation(data) {
+  if (API_MODE) {
+    try {
+      const r = await api("/api/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (r.ok) { saveCode(r.json.reservation.code, data.phone); return { ok: true, reservation: r.json.reservation }; }
+      return { ok: false, error: r.json.error || "예약하지 못했어요. 잠시 뒤에 다시 시도해 주세요." };
+    } catch (e) {
+      return { ok: false, error: "서버에 연결하지 못했어요. 인터넷을 확인해 주세요." };
+    }
+  }
+  // 데모 모드: 이 브라우저에만 저장
+  const site = findSite(data.siteId);
+  const nights = countNights(data.checkIn, data.checkOut);
+  const rec = {
+    id: Date.now(), code: "DEMO" + String(Date.now()).slice(-4), siteId: data.siteId,
+    checkIn: data.checkIn, checkOut: data.checkOut, people: data.people,
+    name: data.name, phone: data.phone, total: nights * site.price, status: "confirmed",
+  };
+  const list = getMyReservations();
+  list.push(rec);
+  saveMyReservations(list);
+  return { ok: true, reservation: rec };
+}
+
+// 전체 예약 현황 (날짜 겹침 확인용)
 function getAllReservations() {
+  if (API_MODE) return BOOKED;
   return DEMO_RESERVATIONS.concat(getMyReservations());
 }
 

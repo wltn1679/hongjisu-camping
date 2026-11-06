@@ -93,6 +93,11 @@ const CAMP_RULES = [
   ]},
 ];
 
+// 서버(api 폴더)에서도 같은 구역 정보를 쓰도록 내보내기 (브라우저에서는 무시됨)
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { SITES: SITES, ZONE_INFO: ZONE_INFO };
+}
+
 // 이미 예약이 차 있는 날짜 (시연용 가짜 예약)
 // checkIn(입실) ~ checkOut(퇴실) 형식: "YYYY-MM-DD"
 const DEMO_RESERVATIONS = [
