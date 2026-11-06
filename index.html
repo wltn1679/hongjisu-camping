@@ -8,7 +8,10 @@
 </head>
 <body>
   <header>
-    <a class="logo" href="index.html">🌲 홍지수캠핑장</a>
+    <div class="brand">
+      <a class="logo" href="index.html">🌲 홍지수캠핑장</a>
+      <a class="maplink" href="map.html">📍 사이트 위치보기</a>
+    </div>
     <nav>
       <a href="index.html">구역 보기</a>
       <a href="my.html">내 예약</a>
@@ -78,9 +81,9 @@
         }
 
         html += '<div class="card ' + cls + '">' +
-          '<div class="pic">' + site.emoji + '</div>' +
+          sitePicHtml(site) +
           '<div class="body">' +
-            '<span class="tag">' + site.type + '</span>' +
+            '<span class="tag zone-' + site.zone + '">' + site.zone + ' ZONE · ' + site.type + '</span>' +
             '<h3>' + site.name + '</h3>' +
             '<p>' + site.desc + '</p>' +
             '<p class="price">1박 ' + formatPrice(site.price) + ' · 최대 ' + site.capacity + '명 ' + status + '</p>' +

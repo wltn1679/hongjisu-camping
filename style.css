@@ -19,7 +19,11 @@ header a { color: white; text-decoration: none; margin-left: 18px; }
 header .logo { font-size: 20px; font-weight: bold; margin-left: 0; }
 
 .hero {
-  background: linear-gradient(135deg, #4f8a5b, #2f5d3a);
+  /* images/hero.jpg 사진을 넣으면 초록색 필터가 씌워져 배경으로 보여요 */
+  background-color: #2f5d3a;
+  background-image: linear-gradient(135deg, rgba(79,138,91,0.62), rgba(47,93,58,0.72)), url("images/hero.jpg");
+  background-size: cover;
+  background-position: center;
   color: white;
   text-align: center;
   padding: 56px 20px;
@@ -76,7 +80,7 @@ button.danger { background: #b24a3a; }
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
-.card .pic { background: #dfe9d9; font-size: 56px; text-align: center; padding: 24px 0; }
+.card .pic { background: #dfe9d9; font-size: 56px; text-align: center; }
 .card .body { padding: 14px 16px 16px; }
 .card h3 { margin-bottom: 4px; }
 .tag {
@@ -111,3 +115,54 @@ button.danger { background: #b24a3a; }
 .empty { text-align: center; color: #888; padding: 40px 0; }
 
 footer { text-align: center; color: #888; font-size: 13px; padding: 24px; }
+
+/* ===== 헤더: 로고 옆 위치보기 링크 ===== */
+.brand { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.brand a { margin-left: 0; }
+.maplink {
+  background: rgba(255,255,255,0.18);
+  padding: 4px 12px;
+  border-radius: 14px;
+  font-size: 14px;
+}
+.maplink:hover { background: rgba(255,255,255,0.32); }
+
+/* ===== 존 색상 ===== */
+.tag.zone-E { background: #fde8cc; color: #a65a0c; }
+.tag.zone-I { background: #dce9f7; color: #245a94; }
+
+.zone-notice { border-radius: 10px; padding: 14px 16px; margin-top: 12px; }
+.zone-notice h3 { margin-bottom: 4px; }
+.zone-notice ul { margin: 8px 0 0 18px; }
+.zone-notice li { margin-bottom: 4px; }
+.zone-notice.zone-E { background: #fff4e3; border: 1px solid #f0b46a; }
+.zone-notice.zone-I { background: #eaf2fb; border: 1px solid #8fb4dd; }
+
+/* ===== 사진 ===== */
+.pic { position: relative; height: 150px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.pic.big { height: 280px; font-size: 80px; }
+.pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* ===== 지도 페이지 ===== */
+.map-wrap { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+#map { width: 100%; height: auto; display: block; }
+#map text { font-family: "Malgun Gothic", "맑은 고딕", sans-serif; }
+.zone-title { font-size: 18px; font-weight: bold; }
+.map-label { font-size: 13px; fill: #444; }
+.map-label.small { font-size: 11px; }
+.site-g { cursor: pointer; }
+.site-g rect { stroke-width: 2; transition: filter .15s; }
+.site-g:hover rect, .site-g:focus rect, .site-g.selected rect { filter: brightness(0.88); stroke: #222; }
+.site-g.selected rect { stroke-width: 4; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 13px; color: #555; }
+.legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+
+.site-panel { display: flex; gap: 16px; flex-wrap: wrap; }
+.site-panel .card { width: 260px; flex-shrink: 0; }
+.site-panel .info { flex: 1; min-width: 240px; }
+
+.zone-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.rule-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.rule-grid .box { margin-bottom: 0; }
+.rule-grid ul { margin-left: 18px; }
+.rule-grid li { margin-bottom: 4px; font-size: 14px; }

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사이트 위치보기 - 홍지수캠핑장</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <a class="logo" href="index.html">🌲 홍지수캠핑장</a>
+      <a class="maplink" href="map.html">📍 사이트 위치보기</a>
+    </div>
+    <nav>
+      <a href="index.html">구역 보기</a>
+      <a href="my.html">내 예약</a>
+    </nav>
+  </header>
+
+  <main>
+    <h2>캠핑장 안내 지도</h2>
+    <p style="margin-bottom:12px">큰 강을 기준으로 <b>위쪽은 E 존(어울림)</b>, <b>아래쪽은 I 존(고요)</b>이에요. 사이트를 눌러 보세요.</p>
+
+    <div class="map-wrap">
+      <svg id="map" viewBox="0 0 1000 850" role="img" aria-label="홍지수캠핑장 안내 지도">
+        <rect width="1000" height="850" rx="14" fill="#e9efdc"/>
+
+        <!-- ========== E ZONE (강 위쪽) ========== -->
+        <rect x="20" y="20" width="960" height="335" rx="18" fill="#fdf1de" stroke="#e9a24a" stroke-width="3" stroke-dasharray="8 6"/>
+        <text x="40" y="45" class="zone-title" fill="#b9670f">E ZONE · 어울림 존 (매너타임 없음)</text>
+
+        <!-- 사이트 앞 주차 라인 (타원 점선) -->
+        <ellipse cx="500" cy="185" rx="275" ry="92" fill="none" stroke="#999" stroke-width="2" stroke-dasharray="6 6"/>
+        <text x="500" y="105" text-anchor="middle" class="map-label small">🚗 사이트 앞 주차 라인</text>
+
+        <!-- 가운데: 잔디 놀이터 + 대형 캠프파이어 -->
+        <ellipse cx="390" cy="190" rx="110" ry="55" fill="#b9dc9a"/>
+        <text x="390" y="186" text-anchor="middle" class="map-label">🏃 잔디 놀이터</text>
+        <text x="390" y="204" text-anchor="middle" class="map-label small">뛰어놀 수 있는 여유 공간</text>
+        <circle cx="620" cy="190" r="48" fill="#f7c58b" stroke="#d9822b" stroke-width="3"/>
+        <text x="620" y="190" text-anchor="middle" class="map-label">🔥 대형</text>
+        <text x="620" y="208" text-anchor="middle" class="map-label">캠프파이어</text>
+
+        <!-- 사이트 뒤편 편의시설 (왼쪽/오른쪽 바깥) -->
+        <g class="map-label">
+          <rect x="32" y="62" width="105" height="52" rx="8" fill="#d9d9d9"/><text x="84" y="93" text-anchor="middle">🚻 화장실</text>
+          <rect x="32" y="136" width="105" height="52" rx="8" fill="#d9d9d9"/><text x="84" y="167" text-anchor="middle">🚿 샤워실</text>
+          <rect x="32" y="210" width="105" height="52" rx="8" fill="#d9d9d9"/><text x="84" y="241" text-anchor="middle">🍳 취사장</text>
+          <rect x="863" y="62" width="105" height="52" rx="8" fill="#d9d9d9"/><text x="915" y="93" text-anchor="middle">🚻 화장실</text>
+          <rect x="863" y="136" width="105" height="52" rx="8" fill="#d9d9d9"/><text x="915" y="167" text-anchor="middle">🚿 샤워실</text>
+          <rect x="863" y="210" width="105" height="52" rx="8" fill="#d9d9d9"/><text x="915" y="241" text-anchor="middle">🍳 취사장</text>
+        </g>
+        <text x="84" y="285" text-anchor="middle" class="map-label small">(사이트 뒤편)</text>
+        <text x="915" y="285" text-anchor="middle" class="map-label small">(사이트 뒤편)</text>
+
+        <!-- ========== 큰 강 ========== -->
+        <path d="M0,385 C180,350 330,430 520,395 S850,350 1000,390 L1000,455 C850,420 700,480 520,455 S180,415 0,450 Z" fill="#6fb1e0"/>
+        <text x="500" y="428" text-anchor="middle" fill="white" style="font-size:20px;font-weight:bold">🌊 큰 강 (E 존 / I 존 경계)</text>
+
+        <!-- ========== I ZONE (강 아래쪽) ========== -->
+        <rect x="20" y="490" width="960" height="250" rx="18" fill="#eaf2fb" stroke="#6f9bd1" stroke-width="3" stroke-dasharray="8 6"/>
+        <text x="40" y="518" class="zone-title" fill="#245a94">I ZONE · 고요 존 (매너타임 필수)</text>
+        <text x="960" y="518" text-anchor="end" class="map-label small">🌅 강 경치를 바라보는 사이트</text>
+
+        <!-- 사이트 앞 주차 라인 -->
+        <rect x="120" y="605" width="760" height="36" rx="8" fill="none" stroke="#999" stroke-width="2" stroke-dasharray="6 6"/>
+        <text x="500" y="628" text-anchor="middle" class="map-label small">🚗 사이트 앞 주차 라인</text>
+
+        <!-- 사이트 뒤편 편의시설 -->
+        <g class="map-label">
+          <rect x="150" y="662" width="200" height="56" rx="8" fill="#d9d9d9"/><text x="250" y="696" text-anchor="middle">🚻 화장실</text>
+          <rect x="400" y="662" width="200" height="56" rx="8" fill="#d9d9d9"/><text x="500" y="696" text-anchor="middle">🚿 샤워실</text>
+          <rect x="650" y="662" width="200" height="56" rx="8" fill="#d9d9d9"/><text x="750" y="696" text-anchor="middle">🍳 취사장</text>
+        </g>
+
+        <!-- ========== 외부 주차장 ========== -->
+        <rect x="20" y="758" width="960" height="72" rx="12" fill="#d4d4d4"/>
+        <text x="500" y="790" text-anchor="middle" style="font-size:20px;font-weight:bold" fill="#444">🅿️ 캠핑장 입구 주차장 (외부)</text>
+        <text x="500" y="812" text-anchor="middle" class="map-label small">추가 차량은 이곳에 주차해 주세요 · 🚪 정문</text>
+
+        <!-- ========== 사이트 (JS가 그림) ========== -->
+        <g id="sites"></g>
+      </svg>
+
+      <div class="legend">
+        <span><i style="background:#f6b26b"></i>E 존 사이트</span>
+        <span><i style="background:#8fb4dd"></i>I 존 사이트</span>
+        <span><i style="background:#b9dc9a"></i>잔디 놀이터</span>
+        <span><i style="background:#d9d9d9"></i>편의시설</span>
+        <span><i style="background:#6fb1e0"></i>큰 강</span>
+      </div>
+    </div>
+
+    <!-- 눌러서 선택한 사이트 정보 -->
+    <h2>선택한 사이트</h2>
+    <div class="box" id="panel">
+      <p class="empty" style="padding:20px 0">지도에서 사이트를 눌러 보세요.</p>
+    </div>
+
+    <!-- 존 안내문 -->
+    <h2>어떤 존이 나에게 맞을까요?</h2>
+    <div class="zone-grid" id="zoneGuide"></div>
+
+    <!-- 공통 이용안내 -->
+    <h2>이용안내</h2>
+    <div class="rule-grid" id="rules"></div>
+  </main>
+
+  <footer>© 홍지수캠핑장 · 과제용 데모 사이트</footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    const sitesG = document.getElementById("sites");
+    const panel = document.getElementById("panel");
+    let positions = {}; // id -> {x, y}
+
+    // 1) 사이트 위치 계산
+    // E 존: 타원을 따라 6개를 둘러서 배치 (가운데는 놀이터/캠프파이어)
+    const eSites = SITES.filter(function (s) { return s.zone === "E"; });
+    const eAngles = [-150, -90, -30, 30, 90, 150];
+    eSites.forEach(function (s, i) {
+      const t = eAngles[i] * Math.PI / 180;
+      positions[s.id] = { x: 500 + 340 * Math.cos(t), y: 185 + 125 * Math.sin(t) };
+    });
+    // I 존: 강을 따라 한 줄로 배치
+    const iSites = SITES.filter(function (s) { return s.zone === "I"; });
+    iSites.forEach(function (s, i) {
+      positions[s.id] = { x: 215 + i * 190, y: 560 };
+    });
+
+    // 2) 사이트 그리기
+    let html = "";
+    SITES.forEach(function (s) {
+      const p = positions[s.id];
+      const fill = s.zone === "E" ? "#f6b26b" : "#8fb4dd";
+      const stroke = s.zone === "E" ? "#c97a1c" : "#4474ac";
+      html += '<g class="site-g" data-id="' + s.id + '" tabindex="0" role="button" aria-label="' + s.name + '">' +
+        '<rect x="' + (p.x - 55) + '" y="' + (p.y - 24) + '" width="110" height="48" rx="8" fill="' + fill + '" stroke="' + stroke + '"/>' +
+        '<text x="' + p.x + '" y="' + (p.y - 3) + '" text-anchor="middle" style="font-size:16px;font-weight:bold" fill="#222">' + s.name.split(" ")[0] + '</text>' +
+        '<text x="' + p.x + '" y="' + (p.y + 15) + '" text-anchor="middle" style="font-size:11px" fill="#333">' + s.type + ' · ' + s.capacity + '인</text>' +
+        '</g>';
+    });
+    sitesG.innerHTML = html;
+
+    // 3) 사이트 선택 → 아래 정보창
+    function selectSite(id) {
+      const s = findSite(id);
+      if (!s) return;
+      document.querySelectorAll(".site-g").forEach(function (g) {
+        g.classList.toggle("selected", Number(g.getAttribute("data-id")) === id);
+      });
+      panel.innerHTML =
+        '<div class="site-panel">' +
+          '<div class="card">' + sitePicHtml(s) + '</div>' +
+          '<div class="info">' +
+            '<span class="tag zone-' + s.zone + '">' + s.zone + ' ZONE · ' + s.type + '</span>' +
+            '<h3>' + s.name + '</h3>' +
+            '<p>' + s.desc + '</p>' +
+            '<p class="price">1박 ' + formatPrice(s.price) + ' · 최대 ' + s.capacity + '명</p>' +
+            '<a class="btn" href="site.html?id=' + s.id + '">이 사이트 예약하기</a>' +
+            zoneNoticeHtml(s) +
+          '</div>' +
+        '</div>';
+    }
+
+    sitesG.addEventListener("click", function (e) {
+      const g = e.target.closest(".site-g");
+      if (g) selectSite(Number(g.getAttribute("data-id")));
+    });
+    sitesG.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const g = e.target.closest(".site-g");
+      if (g) { e.preventDefault(); selectSite(Number(g.getAttribute("data-id"))); }
+    });
+
+    // 주소에 ?id=3 이 있으면 그 사이트를 미리 선택
+    const pre = Number(new URLSearchParams(location.search).get("id"));
+    if (pre) selectSite(pre);
+
+    // 4) 존 안내문
+    let zhtml = "";
+    ["E", "I"].forEach(function (z) {
+      const info = ZONE_INFO[z];
+      let li = "";
+      info.rules.forEach(function (r) { li += "<li>" + r + "</li>"; });
+      zhtml += '<div class="zone-notice zone-' + z + '">' +
+        '<h3>' + info.name + '</h3>' +
+        '<p><b>' + info.short + '</b></p>' +
+        '<p>👉 ' + info.who + '</p>' +
+        '<ul>' + li + '</ul></div>';
+    });
+    document.getElementById("zoneGuide").innerHTML = zhtml;
+
+    // 5) 공통 이용안내
+    let rhtml = "";
+    CAMP_RULES.forEach(function (r) {
+      let li = "";
+      r.items.forEach(function (t) { li += "<li>" + t + "</li>"; });
+      rhtml += '<div class="box"><h3>' + r.title + '</h3><ul>' + li + '</ul></div>';
+    });
+    document.getElementById("rules").innerHTML = rhtml;
+  </script>
+</body>
+</html>

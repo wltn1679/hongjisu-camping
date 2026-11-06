@@ -42,6 +42,22 @@ function findSite(id) {
   return SITES.find(function (s) { return s.id === id; });
 }
 
+// 구역 사진 HTML. 사진 파일이 없으면 자동으로 사라지고 이모지가 보임
+function sitePicHtml(site, big) {
+  return '<div class="pic' + (big ? ' big' : '') + '">' + site.emoji +
+    '<img src="' + site.photo + '" alt="' + site.name + '" onerror="this.remove()">' +
+    '</div>';
+}
+
+// 존(E/I) 안내 박스 HTML
+function zoneNoticeHtml(site) {
+  const z = ZONE_INFO[site.zone];
+  let li = "";
+  z.rules.forEach(function (r) { li += "<li>" + r + "</li>"; });
+  return '<div class="zone-notice zone-' + site.zone + '">' +
+    '<h3>' + z.name + '</h3><p><b>' + z.short + '</b></p><ul>' + li + '</ul></div>';
+}
+
 function todayString() {
   const d = new Date();
   const m = String(d.getMonth() + 1).padStart(2, "0");

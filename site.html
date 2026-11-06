@@ -8,7 +8,10 @@
 </head>
 <body>
   <header>
-    <a class="logo" href="index.html">🌲 홍지수캠핑장</a>
+    <div class="brand">
+      <a class="logo" href="index.html">🌲 홍지수캠핑장</a>
+      <a class="maplink" href="map.html">📍 사이트 위치보기</a>
+    </div>
     <nav>
       <a href="index.html">구역 보기</a>
       <a href="my.html">내 예약</a>
@@ -32,11 +35,13 @@
     } else {
       content.innerHTML =
         '<div class="box">' +
-          '<div class="card"><div class="pic" style="font-size:72px">' + site.emoji + '</div></div>' +
-          '<span class="tag" style="margin-top:12px">' + site.type + '</span>' +
+          '<div class="card">' + sitePicHtml(site, true) + '</div>' +
+          '<span class="tag zone-' + site.zone + '" style="margin-top:12px">' + site.zone + ' ZONE · ' + site.type + '</span>' +
           '<h2 style="margin-top:0">' + site.name + '</h2>' +
           '<p>' + site.desc + '</p>' +
           '<p class="price">1박 ' + formatPrice(site.price) + ' · 최대 ' + site.capacity + '명</p>' +
+          '<p><a href="map.html?id=' + site.id + '">📍 지도에서 위치 보기</a></p>' +
+          zoneNoticeHtml(site) +
         '</div>' +
         '<div class="box">' +
           '<h2 style="margin-top:0">예약하기</h2>' +
@@ -45,6 +50,7 @@
           '<div class="form-row"><label>인원 (최대 ' + site.capacity + '명)</label><input type="number" id="people" min="1" max="' + site.capacity + '" value="2"></div>' +
           '<div class="form-row"><label>예약자 이름</label><input type="text" id="name" placeholder="홍길동"></div>' +
           '<div class="form-row"><label>연락처</label><input type="tel" id="phone" placeholder="010-1234-5678"></div>' +
+          '<div class="form-row"><label><input type="checkbox" id="agree" style="width:auto"> ' + site.zone + ' 존 안내(' + (site.zone === "E" ? "매너타임 없음" : "매너타임 필수") + ')를 확인했어요</label></div>' +
           '<div class="total" id="total">날짜를 선택하면 금액이 나와요</div>' +
           '<div class="error" id="err"></div>' +
           '<button id="reserveBtn">예약 확정</button>' +
@@ -96,6 +102,7 @@
           errEl.textContent = "인원은 1~" + site.capacity + "명까지 가능해요."; return;
         }
         if (!name || !phone) { errEl.textContent = "이름과 연락처를 입력해 주세요."; return; }
+        if (!document.getElementById("agree").checked) { errEl.textContent = "존 안내 확인에 체크해 주세요."; return; }
 
         // 2) ★ 날짜 겹침 검사
         if (!isAvailable(site.id, checkIn, checkOut)) {
