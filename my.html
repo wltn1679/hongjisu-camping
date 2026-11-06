@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 예약 - 홍지수캠핑장</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="logo" href="index.html">🌲 홍지수캠핑장</a>
+    <nav>
+      <a href="index.html">구역 보기</a>
+      <a href="my.html">내 예약</a>
+    </nav>
+  </header>
+
+  <main>
+    <h2>내 예약</h2>
+    <div id="list"></div>
+  </main>
+
+  <footer>© 홍지수캠핑장 · 과제용 데모 사이트</footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    const listEl = document.getElementById("list");
+
+    function render() {
+      const reservations = getMyReservations();
+
+      if (reservations.length === 0) {
+        listEl.innerHTML = '<p class="empty">아직 예약이 없어요. <a href="index.html">구역 보러 가기</a></p>';
+        return;
+      }
+
+      let html = "";
+      reservations.forEach(function (r) {
+        const site = findSite(r.siteId);
+        html += '<div class="box res-item">' +
+          '<div>' +
+            '<h3>' + site.emoji + ' ' + site.name + '</h3>' +
+            '<p>' + r.checkIn + ' ~ ' + r.checkOut + ' (' + countNights(r.checkIn, r.checkOut) + '박) · ' + r.people + '명</p>' +
+            '<p>예약자: ' + r.name + ' (' + r.phone + ')</p>' +
+            '<p class="price">총 ' + formatPrice(r.total) + '</p>' +
+          '</div>' +
+          '<button class="danger" data-id="' + r.id + '">예약 취소</button>' +
+        '</div>';
+      });
+      listEl.innerHTML = html;
+    }
+
+    // 취소 버튼 (목록 안의 버튼을 한 번에 처리)
+    listEl.addEventListener("click", function (e) {
+      const id = e.target.getAttribute("data-id");
+      if (!id) return;
+      if (!confirm("정말 예약을 취소할까요?")) return;
+      const left = getMyReservations().filter(function (r) { return r.id !== Number(id); });
+      saveMyReservations(left);
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

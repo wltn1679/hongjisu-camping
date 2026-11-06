@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구역 상세 - 홍지수캠핑장</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="logo" href="index.html">🌲 홍지수캠핑장</a>
+    <nav>
+      <a href="index.html">구역 보기</a>
+      <a href="my.html">내 예약</a>
+    </nav>
+  </header>
+
+  <main id="content"></main>
+
+  <footer>© 홍지수캠핑장 · 과제용 데모 사이트</footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    // 주소의 ?id=3&in=...&out=... 부분 읽기
+    const params = new URLSearchParams(location.search);
+    const site = findSite(Number(params.get("id")));
+    const content = document.getElementById("content");
+
+    if (!site) {
+      content.innerHTML = '<p class="empty">없는 구역이에요. <a href="index.html">목록으로</a></p>';
+    } else {
+      content.innerHTML =
+        '<div class="box">' +
+          '<div class="card"><div class="pic" style="font-size:72px">' + site.emoji + '</div></div>' +
+          '<span class="tag" style="margin-top:12px">' + site.type + '</span>' +
+          '<h2 style="margin-top:0">' + site.name + '</h2>' +
+          '<p>' + site.desc + '</p>' +
+          '<p class="price">1박 ' + formatPrice(site.price) + ' · 최대 ' + site.capacity + '명</p>' +
+        '</div>' +
+        '<div class="box">' +
+          '<h2 style="margin-top:0">예약하기</h2>' +
+          '<div class="form-row"><label>입실일</label><input type="date" id="checkIn"></div>' +
+          '<div class="form-row"><label>퇴실일</label><input type="date" id="checkOut"></div>' +
+          '<div class="form-row"><label>인원 (최대 ' + site.capacity + '명)</label><input type="number" id="people" min="1" max="' + site.capacity + '" value="2"></div>' +
+          '<div class="form-row"><label>예약자 이름</label><input type="text" id="name" placeholder="홍길동"></div>' +
+          '<div class="form-row"><label>연락처</label><input type="tel" id="phone" placeholder="010-1234-5678"></div>' +
+          '<div class="total" id="total">날짜를 선택하면 금액이 나와요</div>' +
+          '<div class="error" id="err"></div>' +
+          '<button id="reserveBtn">예약 확정</button>' +
+        '</div>';
+
+      const inEl = document.getElementById("checkIn");
+      const outEl = document.getElementById("checkOut");
+      const peopleEl = document.getElementById("people");
+      const totalEl = document.getElementById("total");
+      const errEl = document.getElementById("err");
+
+      inEl.min = todayString();
+      outEl.min = todayString();
+
+      // 목록 페이지에서 넘어온 값이 있으면 채워 넣기
+      if (params.get("in")) inEl.value = params.get("in");
+      if (params.get("out")) outEl.value = params.get("out");
+      if (params.get("people")) peopleEl.value = Math.min(Number(params.get("people")), site.capacity);
+
+      // 총 금액 계산해서 보여주기
+      function updateTotal() {
+        if (inEl.value && outEl.value) {
+          const n = countNights(inEl.value, outEl.value);
+          if (n >= 1) {
+            totalEl.textContent = n + "박 총 " + formatPrice(n * site.price);
+            return;
+          }
+        }
+        totalEl.textContent = "날짜를 선택하면 금액이 나와요";
+      }
+      inEl.addEventListener("change", updateTotal);
+      outEl.addEventListener("change", updateTotal);
+      updateTotal();
+
+      // 예약 버튼
+      document.getElementById("reserveBtn").addEventListener("click", function () {
+        errEl.textContent = "";
+        const checkIn = inEl.value;
+        const checkOut = outEl.value;
+        const people = Number(peopleEl.value);
+        const name = document.getElementById("name").value.trim();
+        const phone = document.getElementById("phone").value.trim();
+
+        // 1) 입력값 검사
+        if (!checkIn || !checkOut) { errEl.textContent = "날짜를 선택해 주세요."; return; }
+        const nights = countNights(checkIn, checkOut);
+        if (nights < 1) { errEl.textContent = "퇴실일은 입실일보다 뒤여야 해요."; return; }
+        if (!people || people < 1 || people > site.capacity) {
+          errEl.textContent = "인원은 1~" + site.capacity + "명까지 가능해요."; return;
+        }
+        if (!name || !phone) { errEl.textContent = "이름과 연락처를 입력해 주세요."; return; }
+
+        // 2) ★ 날짜 겹침 검사
+        if (!isAvailable(site.id, checkIn, checkOut)) {
+          errEl.textContent = "그 날짜에는 이미 예약이 있어요. 다른 날짜를 선택해 주세요.";
+          return;
+        }
+
+        // 3) 저장
+        const list = getMyReservations();
+        list.push({
+          id: Date.now(),
+          siteId: site.id,
+          checkIn: checkIn,
+          checkOut: checkOut,
+          people: people,
+          name: name,
+          phone: phone,
+          total: nights * site.price
+        });
+        saveMyReservations(list);
+
+        alert("예약이 완료됐어요! 🎉");
+        location.href = "my.html";
+      });
+    }
+  </script>
+</body>
+</html>

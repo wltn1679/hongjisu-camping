@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>홍지수캠핑장 - 가족캠핑</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a class="logo" href="index.html">🌲 홍지수캠핑장</a>
+    <nav>
+      <a href="index.html">구역 보기</a>
+      <a href="my.html">내 예약</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>가족과 함께하는 힐링 캠핑</h1>
+    <p>아이들은 뛰어놀고, 어른들은 쉬는 곳 - 홍지수캠핑장</p>
+  </section>
+
+  <main>
+    <!-- 날짜/인원으로 빈 구역 찾기 -->
+    <div class="search-box">
+      <div><label>입실일</label><input type="date" id="checkIn"></div>
+      <div><label>퇴실일</label><input type="date" id="checkOut"></div>
+      <div>
+        <label>인원</label>
+        <select id="people">
+          <option value="1">1명</option><option value="2">2명</option>
+          <option value="3">3명</option><option value="4" selected>4명</option>
+          <option value="5">5명</option><option value="6">6명</option>
+        </select>
+      </div>
+      <button id="searchBtn">빈 자리 찾기</button>
+    </div>
+    <p class="error" id="msg"></p>
+
+    <h2>캠핑 구역</h2>
+    <div class="cards" id="cards"></div>
+  </main>
+
+  <footer>© 홍지수캠핑장 · 과제용 데모 사이트 (예약 정보는 이 브라우저에만 저장돼요)</footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    const cardsEl = document.getElementById("cards");
+    const msgEl = document.getElementById("msg");
+    const inEl = document.getElementById("checkIn");
+    const outEl = document.getElementById("checkOut");
+    const peopleEl = document.getElementById("people");
+
+    inEl.min = todayString();
+    outEl.min = todayString();
+
+    // 구역 카드를 화면에 그리기
+    // dates = 날짜를 골랐는지 여부. 골랐으면 예약 가능/불가를 표시
+    function render() {
+      const checkIn = inEl.value;
+      const checkOut = outEl.value;
+      const people = Number(peopleEl.value);
+      const hasDates = checkIn && checkOut;
+      let html = "";
+
+      SITES.forEach(function (site) {
+        let status = "";
+        let cls = "";
+        let link = "site.html?id=" + site.id;
+
+        if (hasDates) {
+          link += "&in=" + checkIn + "&out=" + checkOut + "&people=" + people;
+          const ok = isAvailable(site.id, checkIn, checkOut) && site.capacity >= people;
+          status = ok ? '<span class="badge-ok">예약 가능</span>'
+                      : '<span class="badge-no">예약 불가</span>';
+          if (!ok) cls = "unavailable";
+        }
+
+        html += '<div class="card ' + cls + '">' +
+          '<div class="pic">' + site.emoji + '</div>' +
+          '<div class="body">' +
+            '<span class="tag">' + site.type + '</span>' +
+            '<h3>' + site.name + '</h3>' +
+            '<p>' + site.desc + '</p>' +
+            '<p class="price">1박 ' + formatPrice(site.price) + ' · 최대 ' + site.capacity + '명 ' + status + '</p>' +
+            '<a class="btn" href="' + link + '">자세히 보기 / 예약</a>' +
+          '</div></div>';
+      });
+
+      cardsEl.innerHTML = html;
+    }
+
+    document.getElementById("searchBtn").addEventListener("click", function () {
+      msgEl.textContent = "";
+      if (!inEl.value || !outEl.value) {
+        msgEl.textContent = "입실일과 퇴실일을 모두 선택해 주세요.";
+        return;
+      }
+      if (countNights(inEl.value, outEl.value) < 1) {
+        msgEl.textContent = "퇴실일은 입실일보다 뒤여야 해요.";
+        return;
+      }
+      render();
+    });
+
+    render(); // 처음 열었을 때 전체 목록 표시
+  </script>
+</body>
+</html>
