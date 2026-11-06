@@ -20,7 +20,8 @@
 
   <main>
     <h2>캠핑장 안내 지도</h2>
-    <p style="margin-bottom:12px">큰 강을 기준으로 <b>위쪽은 E 존(어울림)</b>, <b>아래쪽은 I 존(고요)</b>이에요. 사이트를 눌러 보세요.</p>
+    <p style="margin-bottom:12px">큰 강을 기준으로 <b>위쪽은 E 존(어울림)</b>, <b>아래쪽은 I 존(고요)</b>이에요. 사이트를 누르면 정보가, <b>지도의 빈 곳이나 하얀 점(●)을 누르면 그 자리에서 360° 로드뷰</b>가 열려요.</p>
+    <p style="margin-bottom:12px"><a class="btn" href="tour.html?scene=gate">🚶 정문에서부터 로드뷰로 둘러보기</a></p>
 
     <div class="map-wrap">
       <svg id="map" viewBox="0 0 1000 850" role="img" aria-label="홍지수캠핑장 안내 지도">
@@ -55,12 +56,12 @@
         <text x="915" y="285" text-anchor="middle" class="map-label small">(사이트 뒤편)</text>
 
         <!-- ========== 큰 강 ========== -->
-        <path d="M0,385 C180,350 330,430 520,395 S850,350 1000,390 L1000,455 C850,420 700,480 520,455 S180,415 0,450 Z" fill="#6fb1e0"/>
-        <text x="500" y="428" text-anchor="middle" fill="white" style="font-size:20px;font-weight:bold">🌊 큰 강 (E 존 / I 존 경계)</text>
+        <path id="river" d="" fill="#6fb1e0"/>
+        <text id="riverLabel" x="500" y="428" text-anchor="middle" fill="white" style="font-size:20px;font-weight:bold">🌊 큰 강 (E 존 / I 존 경계)</text>
 
         <!-- ========== I ZONE (강 아래쪽) ========== -->
         <rect x="20" y="490" width="960" height="250" rx="18" fill="#eaf2fb" stroke="#6f9bd1" stroke-width="3" stroke-dasharray="8 6"/>
-        <text x="40" y="518" class="zone-title" fill="#245a94">I ZONE · 고요 존 (매너타임 필수)</text>
+        <text x="40" y="508" class="zone-title" fill="#245a94">I ZONE · 고요 존 (매너타임 필수)</text>
         <text x="960" y="518" text-anchor="end" class="map-label small">🌅 강 경치를 바라보는 사이트</text>
 
         <!-- 사이트 앞 주차 라인 -->
@@ -76,11 +77,14 @@
 
         <!-- ========== 외부 주차장 ========== -->
         <rect x="20" y="758" width="960" height="72" rx="12" fill="#d4d4d4"/>
-        <text x="500" y="790" text-anchor="middle" style="font-size:20px;font-weight:bold" fill="#444">🅿️ 캠핑장 입구 주차장 (외부)</text>
-        <text x="500" y="812" text-anchor="middle" class="map-label small">추가 차량은 이곳에 주차해 주세요 · 🚪 정문</text>
+        <text x="300" y="790" text-anchor="middle" style="font-size:20px;font-weight:bold" fill="#444">🅿️ 캠핑장 입구 주차장 (외부)</text>
+        <text x="300" y="812" text-anchor="middle" class="map-label small">추가 차량은 이곳에 주차해 주세요 · 🚪 정문은 가운데</text>
 
         <!-- ========== 사이트 (JS가 그림) ========== -->
         <g id="sites"></g>
+
+        <!-- 로드뷰 위치 (하얀 점) -->
+        <g id="viewpoints"></g>
       </svg>
 
       <div class="legend">
@@ -89,6 +93,7 @@
         <span><i style="background:#b9dc9a"></i>잔디 놀이터</span>
         <span><i style="background:#d9d9d9"></i>편의시설</span>
         <span><i style="background:#6fb1e0"></i>큰 강</span>
+        <span><i style="background:#fff;border:2px solid #2f5d3a;border-radius:50%"></i>로드뷰 위치</span>
       </div>
     </div>
 
@@ -111,23 +116,56 @@
 
   <script src="data.js"></script>
   <script src="app.js"></script>
+  <script src="world.js"></script>
   <script>
     const sitesG = document.getElementById("sites");
     const panel = document.getElementById("panel");
-    let positions = {}; // id -> {x, y}
 
-    // 1) 사이트 위치 계산
-    // E 존: 타원을 따라 6개를 둘러서 배치 (가운데는 놀이터/캠프파이어)
-    const eSites = SITES.filter(function (s) { return s.zone === "E"; });
-    const eAngles = [-150, -90, -30, 30, 90, 150];
-    eSites.forEach(function (s, i) {
-      const t = eAngles[i] * Math.PI / 180;
-      positions[s.id] = { x: 500 + 340 * Math.cos(t), y: 185 + 125 * Math.sin(t) };
-    });
-    // I 존: 강을 따라 한 줄로 배치
-    const iSites = SITES.filter(function (s) { return s.zone === "I"; });
-    iSites.forEach(function (s, i) {
-      positions[s.id] = { x: 215 + i * 190, y: 560 };
+    // 1) 사이트 위치는 world.js(지도와 로드뷰가 같이 쓰는 좌표)에서 가져와요
+    const positions = SITE_POS;
+
+    // 큰 강은 world.js의 강 모양 함수로 그려서 로드뷰의 강과 똑같이 맞춰요
+    (function drawRiver() {
+      let top = "", bot = "";
+      for (let x = 0; x <= 1000; x += 10) top += (x ? "L" : "M") + x + "," + (riverCenter(x) - RIVER_HALF).toFixed(1);
+      for (let x = 1000; x >= 0; x -= 10) bot += "L" + x + "," + (riverCenter(x) + RIVER_HALF).toFixed(1);
+      document.getElementById("river").setAttribute("d", top + bot + "Z");
+      document.getElementById("riverLabel").setAttribute("y", (riverCenter(500) + 7).toFixed(1));
+    })();
+
+    // 로드뷰 위치(하얀 점) 그리기 + 누르면 로드뷰로 이동
+    (function drawViewpoints() {
+      let h = "";
+      SCENES.forEach(function (sc) {
+        h += '<g class="vp-g" data-id="' + sc.id + '" style="cursor:pointer">' +
+          '<title>🚶 ' + sc.name + ' 로드뷰</title>' +
+          '<circle cx="' + sc.x + '" cy="' + sc.y + '" r="9" fill="#fff" stroke="#2f5d3a" stroke-width="3.5"/>' +
+          '<circle cx="' + sc.x + '" cy="' + sc.y + '" r="4" fill="#2f5d3a"/></g>';
+      });
+      document.getElementById("viewpoints").innerHTML = h;
+    })();
+
+    // 지도에서 누른 자리와 가장 가까운 로드뷰 위치 찾기
+    function nearestScene(x, y) {
+      let best = null, bd = Infinity;
+      SCENES.forEach(function (sc) {
+        const d = Math.hypot(sc.x - x, sc.y - y);
+        if (d < bd) { bd = d; best = sc; }
+      });
+      return best;
+    }
+
+    document.getElementById("map").addEventListener("click", function (e) {
+      const vp = e.target.closest(".vp-g");
+      if (vp) { location.href = "tour.html?scene=" + vp.getAttribute("data-id"); return; }
+      if (e.target.closest(".site-g")) return; // 사이트를 누른 건 아래 정보창에서 처리
+      // 빈 곳을 눌렀으면 → 그 위치에서 제일 가까운 로드뷰로
+      const svg = document.getElementById("map");
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX; pt.y = e.clientY;
+      const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+      const sc = nearestScene(p.x, p.y);
+      if (sc) location.href = "tour.html?scene=" + sc.id;
     });
 
     // 2) 사이트 그리기
@@ -159,7 +197,8 @@
             '<h3>' + s.name + '</h3>' +
             '<p>' + s.desc + '</p>' +
             '<p class="price">1박 ' + formatPrice(s.price) + ' · 최대 ' + s.capacity + '명</p>' +
-            '<a class="btn" href="site.html?id=' + s.id + '">이 사이트 예약하기</a>' +
+            '<a class="btn" href="site.html?id=' + s.id + '">이 사이트 예약하기</a> ' +
+            '<a class="btn" style="background:#3f78b5" href="tour.html?scene=s' + s.id + '">🚶 로드뷰로 보기</a>' +
             zoneNoticeHtml(s) +
           '</div>' +
         '</div>';

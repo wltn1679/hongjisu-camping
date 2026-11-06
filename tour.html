@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로드뷰 - 홍지수캠핑장</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.css">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    html, body { height: 100%; }
+    body { display: flex; flex-direction: column; overflow: hidden; }
+    #stage { position: relative; flex: 1; min-height: 0; background: #1d2b22; }
+    #pano { position: absolute; inset: 0; }
+
+    /* 안내 문구 / 로딩 */
+    #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(20,32,25,0.55); color: #fff; font-size: 18px; z-index: 20; pointer-events: none; transition: opacity .3s; }
+    #loading.hide { opacity: 0; }
+    #hint { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 10;
+      background: rgba(0,0,0,0.55); color: #fff; padding: 6px 14px; border-radius: 16px; font-size: 13px; pointer-events: none; white-space: nowrap; }
+
+    /* 오른쪽 정보 카드 */
+    #card { position: absolute; top: 12px; right: 12px; width: 290px; max-height: calc(100% - 24px); overflow: auto;
+      background: rgba(255,255,255,0.95); border-radius: 12px; padding: 14px; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.35); }
+    #card h3 { margin: 6px 0 4px; }
+    #card p { font-size: 14px; margin-bottom: 6px; }
+    #card .thumb { height: 140px; border-radius: 8px; overflow: hidden; position: relative; background: #dfe9d9;
+      display: flex; align-items: center; justify-content: center; font-size: 48px; cursor: zoom-in; }
+    #card .thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    #card .row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    #card .btn { padding: 7px 12px; font-size: 14px; }
+    #card .btn.light { background: #e8efe3; color: #2f5d3a; }
+    #card .btn.light:hover { background: #d8e5d0; }
+
+    /* 왼쪽 아래 미니맵 */
+    #mini { position: absolute; left: 12px; bottom: 12px; width: 290px; z-index: 10; background: rgba(255,255,255,0.93);
+      border-radius: 12px; padding: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.35); }
+    #mini svg { width: 100%; height: auto; display: block; }
+    #mini .vp { cursor: pointer; }
+    #mini .vp circle { fill: #fff; stroke: #2f5d3a; stroke-width: 4; }
+    #mini .vp:hover circle { fill: #ffe08a; }
+    #mini .vp.current circle { fill: #e0452b; stroke: #fff; }
+    #mini-title { font-size: 12px; color: #555; padding: 2px 6px 4px; display: flex; justify-content: space-between; }
+
+    /* 이동 화살표(핫스팟) */
+    .hs-go { cursor: pointer; width: 60px; height: 60px; margin-left: -30px; margin-top: -30px; }
+    .hs-go .chev { display: flex; width: 60px; height: 60px; border-radius: 50%; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.88); border: 3px solid #2f5d3a; color: #2f5d3a; font-size: 26px; font-weight: bold;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.45); transition: transform .15s; }
+    .hs-go:hover .chev { transform: scale(1.12); background: #fff; }
+    .hs-go .lbl { position: absolute; top: 66px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: rgba(0,0,0,0.7);
+      color: #fff; padding: 3px 10px; border-radius: 10px; font-size: 13px; }
+    .hs-photo { cursor: pointer; width: auto !important; height: auto !important; border-radius: 0 !important; background: none !important;
+      margin-left: -70px; margin-top: -16px; }
+    .hs-photo span { display: inline-block; white-space: nowrap; background: #e9962f; color: #fff; padding: 5px 12px; border-radius: 16px;
+      font-size: 14px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.45); }
+    .hs-photo:hover span { background: #d17d12; }
+
+    /* 사진 크게 보기 */
+    #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
+    #lightbox.show { display: flex; }
+    #lightbox .frame { max-width: 92vw; max-height: 78vh; display: flex; align-items: center; justify-content: center; font-size: 120px; color: #fff; }
+    #lightbox img { max-width: 92vw; max-height: 78vh; border-radius: 8px; }
+    #lightbox .cap { color: #fff; font-size: 16px; }
+
+    @media (max-width: 760px) {
+      #card { top: auto; bottom: 12px; right: 12px; left: 12px; width: auto; max-height: 38%; }
+      #mini { width: 150px; bottom: auto; top: 50px; }
+      #hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <a class="logo" href="index.html">🌲 홍지수캠핑장</a>
+      <a class="maplink" href="map.html">📍 사이트 위치보기</a>
+    </div>
+    <nav>
+      <a href="index.html">구역 보기</a>
+      <a href="my.html">내 예약</a>
+    </nav>
+  </header>
+
+  <div id="stage">
+    <div id="pano"></div>
+    <div id="hint">드래그로 둘러보기 · 동그란 화살표를 눌러 이동 · 마우스 휠로 확대/축소</div>
+    <div id="card"></div>
+    <div id="mini">
+      <div id="mini-title"><span>🗺️ 미니맵 (점을 누르면 이동)</span><a href="map.html">전체 지도</a></div>
+      <svg id="miniSvg" viewBox="0 0 1000 850"></svg>
+    </div>
+    <div id="loading">🌲 캠핑장을 불러오는 중…</div>
+  </div>
+
+  <div id="lightbox"><div class="frame" id="lbFrame"></div><div class="cap" id="lbCap"></div><button id="lbClose">닫기 ✕</button></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script src="world.js"></script>
+  <script src="pano.js"></script>
+  <script>
+    const qs = new URLSearchParams(location.search);
+    let curId = SCENE_BY_ID[qs.get("scene")] ? qs.get("scene") : "gate";
+    let viewer = null;
+    const added = {};
+    let busy = false;
+    const photos = {};
+
+    // ---------- 사진 미리 불러오기 (파노라마 속 안내판에 쓰임) ----------
+    function preloadPhotos() {
+      const jobs = SITES.map(function (s) {
+        return new Promise(function (res) {
+          const im = new Image();
+          im.onload = function () { photos[s.id] = im; res(); };
+          im.onerror = function () { res(); };
+          im.src = s.photo;
+        });
+      });
+      return Promise.race([Promise.all(jobs), new Promise(function (r) { setTimeout(r, 3500); })]);
+    }
+
+    // 진짜 360도 사진(images/pano-장면이름.jpg)이 있으면 그걸 우선 사용
+    function realPano(id) {
+      return new Promise(function (res) {
+        const im = new Image();
+        im.onload = function () { res("images/pano-" + id + ".jpg"); };
+        im.onerror = function () { res(null); };
+        im.src = "images/pano-" + id + ".jpg";
+      });
+    }
+
+    async function getPanoUrl(scene) {
+      const real = await realPano(scene.id);
+      if (real) return real;
+      await new Promise(function (r) { setTimeout(r, 30); }); // 화면 먼저 갱신
+      let cv = renderPano(scene, photos);
+      try { return cv.toDataURL("image/jpeg", 0.88); }
+      catch (e) { cv = renderPano(scene, {}); return cv.toDataURL("image/jpeg", 0.88); } // 사진 때문에 막히면 사진 없이
+    }
+
+    // ---------- 화살표(핫스팟) ----------
+    function makeArrow(div, args) {
+      div.classList.add("hs-go");
+      div.innerHTML = '<div class="chev">▲</div><div class="lbl">' + args.name + '</div>';
+      div.querySelector(".chev").style.transform = "rotate(0deg)";
+    }
+    function makePhotoTag(div, args) {
+      div.classList.add("hs-photo");
+      div.innerHTML = '<span>📷 ' + args.name + ' 사진 보기</span>';
+    }
+
+    function buildHotspots(scene) {
+      const hs = [];
+      sceneNeighbors(scene.id).forEach(function (n) {
+        const yaw = bearingDeg(scene, n);
+        hs.push({
+          pitch: -20, yaw: yaw, type: "custom",
+          createTooltipFunc: makeArrow, createTooltipArgs: { name: n.name },
+          clickHandlerFunc: function () { goTo(n.id, yaw); },
+        });
+      });
+      if (scene.siteId) {
+        const p = SITE_POS[scene.siteId];
+        hs.push({
+          pitch: 3, yaw: bearingDeg(scene, p), type: "custom",
+          createTooltipFunc: makePhotoTag, createTooltipArgs: { name: findSite(scene.siteId).name.split(" ")[0] },
+          clickHandlerFunc: function () { openPhoto(scene.siteId); },
+        });
+      }
+      return hs;
+    }
+
+    // ---------- 장면 이동 ----------
+    function showLoading(on, text) {
+      const el = document.getElementById("loading");
+      if (text) el.textContent = text;
+      el.classList.toggle("hide", !on);
+    }
+
+    async function goTo(id, yaw) {
+      if (busy) return;
+      busy = true;
+      const scene = SCENE_BY_ID[id];
+      if (yaw == null) yaw = scene.look || 0;
+      showLoading(true, "📍 " + scene.name + " 로 이동 중…");
+      const safety = setTimeout(function () { busy = false; showLoading(false); }, 9000);
+
+      try {
+        if (!added[id]) {
+          const url = await getPanoUrl(scene);
+          added[id] = true;
+          const cfg = { type: "equirectangular", panorama: url, pitch: 0, yaw: yaw, hfov: 100, hotSpots: buildHotspots(scene) };
+          if (!viewer) {
+            viewer = pannellum.viewer("pano", {
+              default: { firstScene: id, sceneFadeDuration: 700, autoLoad: true, showControls: true, showFullscreenCtrl: false,
+                         mouseZoom: true, minHfov: 55, maxHfov: 120, compass: false },
+              scenes: (function () { const o = {}; o[id] = cfg; return o; })(),
+            });
+            viewer.on("load", function () { busy = false; clearTimeout(safety); showLoading(false); });
+          } else {
+            viewer.addScene(id, cfg);
+            viewer.loadScene(id, 0, yaw, 100);
+          }
+        } else {
+          viewer.loadScene(id, 0, yaw, 100);
+        }
+      } catch (e) {
+        console.error(e);
+        busy = false; clearTimeout(safety);
+        showLoading(true, "불러오지 못했어요. 새로고침 해 주세요.");
+        return;
+      }
+      setCurrent(id);
+    }
+
+    // ---------- 사진 크게 보기 ----------
+    function openPhoto(siteId) {
+      const s = findSite(siteId);
+      const frame = document.getElementById("lbFrame");
+      frame.innerHTML = s.emoji;
+      const im = new Image();
+      im.alt = s.name;
+      im.onload = function () { frame.innerHTML = ""; frame.appendChild(im); };
+      im.src = s.photo;
+      document.getElementById("lbCap").textContent = s.name + " · 1박 " + formatPrice(s.price);
+      document.getElementById("lightbox").classList.add("show");
+    }
+    document.getElementById("lbClose").addEventListener("click", function () { document.getElementById("lightbox").classList.remove("show"); });
+    document.getElementById("lightbox").addEventListener("click", function (e) {
+      if (e.target.id === "lightbox") e.currentTarget.classList.remove("show");
+    });
+
+    // ---------- 오른쪽 정보 카드 ----------
+    function updateCard(scene) {
+      const card = document.getElementById("card");
+      let html = "";
+      if (scene.siteId) {
+        const s = findSite(scene.siteId);
+        html += '<div class="thumb" id="thumb">' + s.emoji + '<img src="' + s.photo + '" alt="" onerror="this.remove()"></div>';
+        html += '<span class="tag zone-' + s.zone + '" style="margin-top:8px">' + s.zone + ' ZONE · ' + s.type + '</span>';
+        html += '<h3>' + s.name + '</h3><p>' + s.desc + '</p>';
+        html += '<p class="price">1박 ' + formatPrice(s.price) + ' · 최대 ' + s.capacity + '명</p>';
+        html += '<div class="row"><a class="btn" href="site.html?id=' + s.id + '">이 사이트 예약하기</a>' +
+                '<button class="btn light" id="bigPhoto">📷 사진 크게</button></div>';
+      } else {
+        if (scene.zone) html += '<span class="tag zone-' + scene.zone + '">' + scene.zone + ' ZONE</span>';
+        html += '<h3>' + scene.name + '</h3><p>' + scene.desc + '</p>';
+      }
+      if (scene.zone) {
+        html += '<p style="font-size:13px;color:#555;margin-top:8px">' + ZONE_INFO[scene.zone].short + '</p>';
+      }
+      card.innerHTML = html;
+      const th = document.getElementById("thumb");
+      if (th) th.addEventListener("click", function () { openPhoto(scene.siteId); });
+      const bp = document.getElementById("bigPhoto");
+      if (bp) bp.addEventListener("click", function () { openPhoto(scene.siteId); });
+    }
+
+    // ---------- 미니맵 ----------
+    function buildMini() {
+      const svg = document.getElementById("miniSvg");
+      let h = '<rect width="1000" height="850" rx="14" fill="#e9efdc"/>';
+      h += '<rect x="20" y="20" width="960" height="335" rx="18" fill="#fdf1de" stroke="#e9a24a" stroke-width="4"/>';
+      h += '<rect x="20" y="490" width="960" height="250" rx="18" fill="#eaf2fb" stroke="#6f9bd1" stroke-width="4"/>';
+      h += '<rect x="20" y="758" width="960" height="72" rx="12" fill="#d4d4d4"/>';
+      // 강
+      let top = "", bot = "";
+      for (let x = 0; x <= 1000; x += 20) top += (x ? "L" : "M") + x + "," + (riverCenter(x) - RIVER_HALF);
+      for (let x = 1000; x >= 0; x -= 20) bot += "L" + x + "," + (riverCenter(x) + RIVER_HALF);
+      h += '<path d="' + top + bot + 'Z" fill="#6fb1e0"/>';
+      h += '<ellipse cx="390" cy="190" rx="110" ry="55" fill="#b9dc9a"/>';
+      h += '<circle cx="620" cy="190" r="48" fill="#f7c58b" stroke="#d9822b" stroke-width="4"/>';
+      FACILITIES.forEach(function (f) { h += '<rect x="' + f.x + '" y="' + f.y + '" width="' + f.w + '" height="' + f.h + '" rx="8" fill="#d9d9d9"/>'; });
+      SITES.forEach(function (s) {
+        const p = SITE_POS[s.id];
+        h += '<rect x="' + (p.x - 55) + '" y="' + (p.y - 24) + '" width="110" height="48" rx="8" fill="' + (s.zone === "E" ? "#f6b26b" : "#8fb4dd") + '"/>';
+        h += '<text x="' + p.x + '" y="' + (p.y + 12) + '" text-anchor="middle" style="font-size:34px;font-weight:bold" fill="#222">' + s.name.split(" ")[0] + '</text>';
+      });
+      h += '<text x="500" y="800" text-anchor="middle" style="font-size:34px;font-weight:bold" fill="#555">입구 주차장</text>';
+      // 시야 표시(부채꼴)
+      h += '<g id="cone" transform="translate(0,0) rotate(0)"><path d="M0,0 L-90,-170 A190,190 0 0 1 90,-170 Z" fill="rgba(224,69,43,0.35)" stroke="rgba(224,69,43,0.8)" stroke-width="3"/></g>';
+      // 이동 지점
+      SCENES.forEach(function (sc) {
+        h += '<g class="vp" data-id="' + sc.id + '"><circle cx="' + sc.x + '" cy="' + sc.y + '" r="15"/></g>';
+      });
+      svg.innerHTML = h;
+      svg.addEventListener("click", function (e) {
+        const g = e.target.closest(".vp");
+        if (g) goTo(g.getAttribute("data-id"));
+      });
+    }
+
+    function updateMini(scene) {
+      document.querySelectorAll("#mini .vp").forEach(function (g) {
+        g.classList.toggle("current", g.getAttribute("data-id") === scene.id);
+      });
+      const cone = document.getElementById("cone");
+      cone.setAttribute("transform", "translate(" + scene.x + "," + scene.y + ") rotate(" + (viewer ? viewer.getYaw() : 0) + ")");
+    }
+
+    function setCurrent(id) {
+      curId = id;
+      const scene = SCENE_BY_ID[id];
+      updateCard(scene);
+      updateMini(scene);
+      try { history.replaceState(null, "", "?scene=" + id); } catch (e) {}
+    }
+
+    // 고개를 돌릴 때마다 미니맵의 시야 부채꼴도 같이 돌게
+    setInterval(function () {
+      if (!viewer) return;
+      const sc = SCENE_BY_ID[curId];
+      const cone = document.getElementById("cone");
+      if (cone) cone.setAttribute("transform", "translate(" + sc.x + "," + sc.y + ") rotate(" + viewer.getYaw() + ")");
+    }, 100);
+
+    // ---------- 시작 ----------
+    (async function start() {
+      buildMini();
+      await preloadPhotos();
+
+      // 점검용: tour.html?scene=s1&flat=1 이면 펼친 파노라마 그림을 그대로 보여줌
+      if (qs.get("flat")) {
+        const cv = renderPano(SCENE_BY_ID[curId], photos);
+        let url;
+        try { url = cv.toDataURL("image/jpeg", 0.9); } catch (e) { url = renderPano(SCENE_BY_ID[curId], {}).toDataURL("image/jpeg", 0.9); }
+        document.getElementById("pano").innerHTML = '<img style="width:100%;height:100%;object-fit:contain" src="' + url + '">';
+        showLoading(false);
+        setCurrent(curId);
+        return;
+      }
+      await goTo(curId);
+      // 점검용: ?scene=s5&then=lawn 이면 첫 장면을 본 뒤 자동으로 다음 장면으로 이동
+      if (qs.get("then") && SCENE_BY_ID[qs.get("then")]) {
+        setTimeout(function () { goTo(qs.get("then")); }, 3000);
+      }
+    })();
+  </script>
+</body>
+</html>
